@@ -2,6 +2,7 @@ package bufp
 
 import (
 	"bytes"
+	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 	"time"
