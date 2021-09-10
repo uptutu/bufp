@@ -2,6 +2,7 @@ package bufp
 
 import (
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -11,7 +12,7 @@ const _size = 1024 // by default, create 1 KiB buffers
 // the only way to construct one is via a Pool.
 type Buffer struct {
 	bs   []byte
-	pool Pool
+	pool *sync.Pool
 }
 
 // AppendByte writes a single byte to the Buffer.
@@ -114,5 +115,5 @@ func (b *Buffer) TrimNewline() {
 //
 // Callers must not retain references to the Buffer after calling Free.
 func (b *Buffer) Free() {
-	b.pool.put(b)
+	b.pool.Put(b)
 }

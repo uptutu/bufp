@@ -2,28 +2,36 @@ package bufp
 
 import "sync"
 
-// A Pool is a type-safe wrapper around a sync.Pool.
-type Pool struct {
-	p *sync.Pool
+var simplePool *sync.Pool
+
+func init() {
+	NewPool(_size)
 }
 
-// NewPool constructs a new Pool.
-func NewPool() Pool {
-	return Pool{p: &sync.Pool{
+// NewPool constructs a new sync.Pool.
+func NewPool(size int) *sync.Pool {
+	return &sync.Pool{
 		New: func() interface{} {
-			return &Buffer{bs: make([]byte, 0, _size)}
+			return &Buffer{bs: make([]byte, 0, size)}
 		},
-	}}
+	}
 }
 
-// Get retrieves a Buffer from the pool, creating one if necessary.
-func (p Pool) Get() *Buffer {
-	buf := p.p.Get().(*Buffer)
+func SetSimplePool(pool *sync.Pool) {
+	simplePool = pool
+}
+
+func Pool() *sync.Pool {
+	return simplePool
+}
+
+func Put(buf *Buffer) {
+	simplePool.Put(buf)
+}
+
+func Get() *Buffer {
+	buf := simplePool.Get().(*Buffer)
 	buf.Reset()
-	buf.pool = p
+	buf.pool = simplePool
 	return buf
-}
-
-func (p Pool) put(buf *Buffer) {
-	p.p.Put(buf)
 }

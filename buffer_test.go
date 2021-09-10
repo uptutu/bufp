@@ -9,7 +9,7 @@ import (
 )
 
 func TestBufferWrites(t *testing.T) {
-	buf := NewPool().Get()
+	buf := Get()
 
 	tests := []struct {
 		desc string
@@ -52,7 +52,7 @@ func BenchmarkBuffers(b *testing.B) {
 	str := strings.Repeat("a", 1024)
 	slice := make([]byte, 1024)
 	buf := bytes.NewBuffer(slice)
-	custom := NewPool().Get()
+	custom := Get()
 	b.Run("ByteSlice", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			slice = append(slice, str...)
