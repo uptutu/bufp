@@ -191,3 +191,7 @@ func TestRightOne(t *testing.T) {
 		}
 	}
 }
+
+func TestServe(t *testing.T) {
+
+}
