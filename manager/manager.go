@@ -2,8 +2,18 @@ package manager
 
 import (
 	"bufp"
+	"errors"
 	"sync"
 )
+
+func init() {
+	m = manager{
+		head: nil,
+		tail: nil,
+		len:  0,
+	}
+	m.setNode(DefaultSize1KiB, nil)
+}
 
 var m manager
 
@@ -76,6 +86,13 @@ func (m manager) find(size int) (*node, bool) {
 	return nil, false
 }
 
+func (m *manager) reset() {
+	m.head = nil
+	m.tail = nil
+	m.mbFirstNode = nil
+	m.len = 0
+}
+
 type node struct {
 	size     int
 	p        *sync.Pool
@@ -90,15 +107,6 @@ func newNode(size int, pool *sync.Pool) node {
 		next:     nil,
 		previous: nil,
 	}
-}
-
-func init() {
-	m = manager{
-		head: nil,
-		tail: nil,
-		len:  0,
-	}
-	m.setNode(DefaultSize1KiB, nil)
 }
 
 func InitKibPools(sizes ...int) error {
@@ -152,14 +160,18 @@ func RightOne(size int) (*sync.Pool, bool) {
 	return nil, false
 }
 
-func Serve(size int, fn func(bufp.Buffer) error) error {
+func Serve(size int, fn func(*bufp.Buffer) error) error {
 	if pool, ok := RightOne(size); ok {
-		buffer := pool.Get().(bufp.Buffer)
+		buffer, ok := pool.Get().(*bufp.Buffer)
+		if !ok {
+			return errors.New("pool get obj err")
+		}
 		err := fn(buffer)
-		buffer.Free()
+		buffer.Reset()
+		pool.Put(buffer)
 		return err
 	}
-	buffer := bufp.Buffer{}
+	buffer := bufp.NewBuffer(size)
 	return fn(buffer)
 }
 

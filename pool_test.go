@@ -21,7 +21,7 @@ func TestBuffers(t *testing.T) {
 				buf.AppendString(dummyData)
 				assert.Equal(t, buf.Len(), len(dummyData), "Expected buffer to contain dummy data")
 
-				buf.Free()
+				Put(buf)
 			}
 			wg.Done()
 		}()

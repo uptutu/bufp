@@ -2,7 +2,6 @@ package bufp
 
 import (
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -11,8 +10,11 @@ const _size = 1024 // by default, create 1 KiB buffers
 // Buffer is a thin wrapper around a byte slice. It's intended to be pooled, so
 // the only way to construct one is via a Pool.
 type Buffer struct {
-	bs   []byte
-	pool *sync.Pool
+	bs []byte
+}
+
+func NewBuffer(size int) *Buffer {
+	return &Buffer{bs: make([]byte, 0, size)}
 }
 
 // AppendByte writes a single byte to the Buffer.
@@ -109,11 +111,4 @@ func (b *Buffer) TrimNewline() {
 			b.bs = b.bs[:i]
 		}
 	}
-}
-
-// Free returns the Buffer to its Pool.
-//
-// Callers must not retain references to the Buffer after calling Free.
-func (b *Buffer) Free() {
-	b.pool.Put(b)
 }

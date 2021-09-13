@@ -193,5 +193,74 @@ func TestRightOne(t *testing.T) {
 }
 
 func TestServe(t *testing.T) {
+	largeContent := make([]byte, 5555555555, 5555555555)
+	Set(5555555555, bufp.NewPool(5555555555))
 
+	writeContent2BufferDoSomething := func(buffer *bufp.Buffer) error {
+		c, err := buffer.Write(largeContent)
+		assert.Equal(t, 5555555555, c)
+		return err
+	}
+
+	err := Serve(len(largeContent), writeContent2BufferDoSomething)
+	assert.Nil(t, err)
+
+	littleContent := make([]byte, 125, 125)
+	err = Serve(len(littleContent), writeContent2BufferDoSomething)
+	assert.Nil(t, err)
+}
+
+func BenchmarkServe5MibInPoolWay(b *testing.B) {
+	largeContent := make([]byte, 5*DefaultSize1MiB, 5*DefaultSize1MiB)
+	Set(5*DefaultSize1MiB, bufp.NewPool(5*DefaultSize1MiB))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		writeContent2BufferDoSomething := func(buffer *bufp.Buffer) error {
+			_, err := buffer.Write(largeContent)
+			return err
+		}
+
+		Serve(len(largeContent), writeContent2BufferDoSomething)
+	}
+}
+
+func BenchmarkServe5mibInNormalWay(b *testing.B) {
+	m.reset()
+	largeContent := make([]byte, 5*DefaultSize1MiB, 5*DefaultSize1MiB)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		writeContent2BufferDoSomething := func(buffer *bufp.Buffer) error {
+			_, err := buffer.Write(largeContent)
+			return err
+		}
+
+		Serve(len(largeContent), writeContent2BufferDoSomething)
+	}
+}
+
+func BenchmarkServe255kibInPoolWay(b *testing.B) {
+	largeContent := make([]byte, 255*DefaultSize1KiB, 255*DefaultSize1KiB)
+	Set(255*DefaultSize1KiB, bufp.NewPool(255*DefaultSize1KiB))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		writeContent2BufferDoSomething := func(buffer *bufp.Buffer) error {
+			_, err := buffer.Write(largeContent)
+			return err
+		}
+
+		Serve(len(largeContent), writeContent2BufferDoSomething)
+	}
+}
+
+func BenchmarkServe255kibInNormalWay(b *testing.B) {
+	m.reset()
+	largeContent := make([]byte, 255*DefaultSize1KiB, 255*DefaultSize1KiB)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		writeContent2BufferDoSomething := func(buffer *bufp.Buffer) error {
+			_, err := buffer.Write(largeContent)
+			return err
+		}
+		Serve(len(largeContent), writeContent2BufferDoSomething)
+	}
 }

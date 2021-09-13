@@ -12,12 +12,12 @@ func init() {
 func NewPool(size int) *sync.Pool {
 	return &sync.Pool{
 		New: func() interface{} {
-			return &Buffer{bs: make([]byte, 0, size)}
+			return NewBuffer(size)
 		},
 	}
 }
 
-func SetSimplePool(pool *sync.Pool) {
+func Set(pool *sync.Pool) {
 	simplePool = pool
 }
 
@@ -32,6 +32,5 @@ func Put(buf *Buffer) {
 func Get() *Buffer {
 	buf := simplePool.Get().(*Buffer)
 	buf.Reset()
-	buf.pool = simplePool
 	return buf
 }
