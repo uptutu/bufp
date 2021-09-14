@@ -1,6 +1,8 @@
 package bufp
 
-import "sync"
+import (
+	"sync"
+)
 
 var simplePool *sync.Pool
 
@@ -30,7 +32,11 @@ func Put(buf *Buffer) {
 }
 
 func Get() *Buffer {
-	buf := simplePool.Get().(*Buffer)
-	buf.Reset()
+	buf, ok := simplePool.Get().(*Buffer)
+	if ok {
+		buf.Reset()
+	} else {
+		buf = &Buffer{bs: make([]byte, 0, _size)}
+	}
 	return buf
 }
