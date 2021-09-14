@@ -8,20 +8,28 @@ import (
 
 func init() {
 	m = manager{
-		head: nil,
-		tail: nil,
-		len:  0,
+		failCase: make(map[int]int),
+		len:      0,
 	}
 	m.setNode(DefaultSize1KiB, nil)
 }
 
-var m manager
+var (
+	m             manager
+	attemptTimes  = 10
+	attachableGap = 5 * DefaultSize1KiB
+)
+
+func SetAttemptTimes(size int) {
+	attemptTimes = size
+}
 
 type manager struct {
-	head        *node
-	tail        *node
-	mbFirstNode *node
-	len         int
+	head     *node
+	tail     *node
+	middle   *node
+	failCase map[int]int
+	len      int
 }
 
 func (m *manager) setNode(size int, pool *sync.Pool) {
@@ -31,8 +39,8 @@ func (m *manager) setNode(size int, pool *sync.Pool) {
 	}
 	n := newNode(size, pool)
 
-	if size>>20 != 0 && m.mbFirstNode == nil {
-		m.mbFirstNode = &n
+	if size>>20 != 0 && m.middle == nil {
+		m.middle = &n
 	}
 	if m.head == nil {
 		m.head = &n
@@ -49,8 +57,8 @@ func (m *manager) setNode(size int, pool *sync.Pool) {
 			}
 			n.previous = traveler.previous
 			n.next = traveler
-			if n.size>>20 != 0 && traveler == m.mbFirstNode {
-				m.mbFirstNode = &n
+			if n.size>>20 != 0 && traveler == m.middle {
+				m.middle = &n
 			}
 			if traveler.previous == nil {
 				m.head = &n
@@ -71,10 +79,10 @@ func (m *manager) setNode(size int, pool *sync.Pool) {
 }
 
 func (m manager) find(size int) (*node, bool) {
-	endCondition := m.mbFirstNode
+	endCondition := m.middle
 	traveler := m.head
 	if size>>20 != 0 {
-		traveler = m.mbFirstNode
+		traveler = m.middle
 		endCondition = nil
 	}
 
@@ -89,8 +97,19 @@ func (m manager) find(size int) (*node, bool) {
 func (m *manager) reset() {
 	m.head = nil
 	m.tail = nil
-	m.mbFirstNode = nil
+	m.middle = nil
 	m.len = 0
+}
+
+func (m *manager) fail(size int) {
+	if val, ok := m.failCase[size]; ok {
+		m.failCase[size]++
+		if val+1 >= attemptTimes {
+			m.setNode(size, nil)
+		}
+		return
+	}
+	m.failCase[size] = 1
 }
 
 type node struct {
@@ -139,24 +158,27 @@ func Get(size int) (*sync.Pool, bool) {
 }
 
 func Set(size int, pool *sync.Pool) {
-	size = trimSize(size)
+	if pool == nil {
+		size = trimSize(size)
+	}
 	m.setNode(size, pool)
 }
 
 func RightOne(size int) (*sync.Pool, bool) {
 	size = trimSize(size)
-	endCondition := m.mbFirstNode
+	endCondition := m.middle
 	traveler := m.head
 	if size>>20 != 0 {
-		traveler = m.mbFirstNode
+		traveler = m.middle
 		endCondition = nil
 	}
 
 	for ; traveler != endCondition; traveler = traveler.next {
-		if traveler.size >= size && (traveler.size-size) < (1<<20) {
+		if traveler.size >= size && (traveler.size-size) < attachableGap {
 			return traveler.p, true
 		}
 	}
+	m.fail(size)
 	return nil, false
 }
 

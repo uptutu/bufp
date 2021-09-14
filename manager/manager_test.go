@@ -16,28 +16,28 @@ func TestNewNode(t *testing.T) {
 
 func TestManager_SetNode(t *testing.T) {
 	m := manager{
-		head:        nil,
-		tail:        nil,
-		mbFirstNode: nil,
-		len:         0,
+		head:   nil,
+		tail:   nil,
+		middle: nil,
+		len:    0,
 	}
 	m.setNode(1, nil)
 
 	assert.Equal(t, m.len, 1)
 	assert.Equal(t, m.head.size, 1)
 	assert.Equal(t, m.head, m.tail)
-	assert.Nil(t, m.mbFirstNode)
+	assert.Nil(t, m.middle)
 
 	m.setNode(DefaultSize1MiB*2, nil)
 	assert.Equal(t, m.len, 2)
 	assert.Equal(t, m.head.next.size, DefaultSize1MiB*2)
 	assert.NotEqual(t, m.tail, m.head)
-	assert.NotNil(t, m.mbFirstNode)
+	assert.NotNil(t, m.middle)
 
 	p := bufp.NewPool(DefaultSize1MiB)
 	m.setNode(DefaultSize1MiB, p)
 	assert.Equal(t, m.len, 3)
-	assert.Equal(t, m.mbFirstNode, m.head.next)
+	assert.Equal(t, m.middle, m.head.next)
 	assert.NotEqual(t, m.tail, p)
 	assert.NotEqual(t, m.head, p)
 }
@@ -208,6 +208,24 @@ func TestServe(t *testing.T) {
 	littleContent := make([]byte, 125, 125)
 	err = Serve(len(littleContent), writeContent2BufferDoSomething)
 	assert.Nil(t, err)
+}
+
+func TestFailAndSetAttemptTimes(t *testing.T) {
+	n, ok := m.find(2)
+	assert.Nil(t, n)
+	assert.False(t, ok)
+	assert.Equal(t, 1, m.len)
+	SetAttemptTimes(6)
+	for i := 0; i < 6; i++ {
+		m.fail(2)
+	}
+	assert.Equal(t, 2, m.len)
+	n, ok = m.find(2)
+	assert.NotNil(t, n)
+	assert.True(t, ok)
+	m.fail(2)
+	assert.Equal(t, 2, m.len)
+
 }
 
 func BenchmarkServe5MibInPoolWay(b *testing.B) {
